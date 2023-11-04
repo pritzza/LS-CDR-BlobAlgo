@@ -1,0 +1,62 @@
+
+
+
+requires vec2i class to be hashable
+
+vec2i {
+
+	signed 32 bit int x
+	signed 32 bit int y
+
+	hash() 
+	{
+		x + (y >> 32)
+	}
+
+}
+
+int count_neightbors(grid g, vec2i pos)
+{
+	return the sum of !empty of 4 adjacent cells
+}
+
+// stores coordinates of all cells on the perimeter as key
+// and number of nonempty neighbors as value
+unordered_map<vec2i, int> perimeter
+
+void add(int random_index, grid g, map perimeter)
+{
+	assert(random_index < perimeter.size())
+
+	// select random element from perimeter
+	// grow in random valid direction from chosen perimeter cell
+	// take coordinate of newly grown cell
+	// add it to perimeter
+	// increment neighbor count of all cells adjacent to new cell
+	// if any of the adjacent cells now have 4 neighbors, remove from perimeter
+
+	for (perimeter_cell in perimeter)
+	{
+		random_index -= 1
+		
+		if (random_index == 0)
+		{
+			vec2i new_cell_pos = grow_in_random_direction(perimeter_cell)
+			
+			new_cell_neighbors = get_neighbors(new_cell_pos)
+
+			if (new_cell_neighbors.size() < 4)
+				perimeter.insert(new_cell_pos, new_cell_neighbors.size())
+
+			for (neighbor_cell in new_cell_neighbor)
+			{
+				perimeter.at(neighbor_cell) += 1
+
+				if (perimeter.at(neighbor_cell) >= 4)
+					perimeter.remove(neighbor_cell)
+			}
+		
+		}
+	}
+
+}
