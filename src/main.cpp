@@ -2,7 +2,7 @@
 
 int main()
 {
-    Simulation simulation{ 256, 256, 2, "Le Subrat CDR Shape Algo Sim" };
+    Simulation simulation{ 800, 800, 1, "Le Subrat CDR Shape Algo Sim" };
 
     simulation.start();
 

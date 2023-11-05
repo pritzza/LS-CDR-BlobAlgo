@@ -27,6 +27,7 @@ void Blob::grow()
 		const Cell& neightbor_cell = g.getCell(
 			Math::to_index(new_cell_neighbor_coord, g.dim)
 		);
+
 		if (!neightbor_cell.isEmpty())
 		{
 			// if any of the adjacent cells now have 4 neighbors, remove from perimeter
@@ -42,22 +43,27 @@ void Blob::grow()
 	}
 }
 
+float Blob::perimeterAreaRatio() const
+{
+	if (perimeter.size() == 0 || area == 0)
+		return 0.f;
+
+	return (float)perimeter.size() / area;
+}
+
 bool Blob::fillCell(const Vec2i& coord, Cell::Type contents)
 {
-	if (!Math::in_bounds(coord, g.dim))
+	if (!isValidFill(coord, contents))
 		return false;
 
 	const int cell_index = Math::to_index(coord, g.dim);
 	Cell& cell = g.getCell(cell_index);
 
-	const bool stale_contents = cell.getType() == contents;
-
-	if (stale_contents)
-		return false;
-
 	cell.setType(contents);
 	cell.setID(id);
 	g.setCell(cell_index, cell);
+
+	area++;
 
 	const int neighbor_count = g.countNonEmptyNeighbors(coord);
 
@@ -66,15 +72,24 @@ bool Blob::fillCell(const Vec2i& coord, Cell::Type contents)
 	return true;
 }
 
-const Vec2i Blob::selectionRandomElementFromPerimeter() const
+const Vec2i Blob::selectionRandomElementFromPerimeter() 
 {
 	int random_index = Math::rng(0, perimeter.size());
 
 	auto it = perimeter.begin();
-
 	std::advance(it, random_index);
-
 	return it->first;
+}
+
+void Blob::cullPerimeter()
+{
+	std::vector<Vec2i> non_perimeter_cells;
+	for (auto it : perimeter)
+		if (it.second >= 4)
+			non_perimeter_cells.push_back(it.first);
+	
+	for (const Vec2i non_perimeter_cell : non_perimeter_cells)
+			perimeter.erase(non_perimeter_cell);
 }
 
 bool Blob::isValidFill(const Vec2i& coord, Cell::Type contents) const

@@ -31,7 +31,6 @@ private:
 	const Vec2i dim;
 
 	Grid* m_grid;
-	//Grid* m_next_grid;
 
 	sf::Image m_buffer;	// the buffer stores all the pixels of the cellular automata
 
@@ -46,6 +45,10 @@ private:
 	const Cell OUT_OF_BOUNDS_CELL{Cell::Type::Filled};
 
 	std::vector<Blob> blobs;
+	int num_blobs = 50;
+	std::vector<sf::Color> blob_colors;
+
+	int iterations_left{ 0 };
 
 private:
 	void init();
@@ -56,5 +59,4 @@ private:
 	void update(int tick);
 	void render();
 
-	//void swapGrids();
 };

@@ -2,11 +2,6 @@
 
 #include <iostream>
 
-#include <algorithm>
-#include <iomanip>
-#include <functional>
-#include <math.h>
-
 #include "util/Math.h"
 
 Simulation::Simulation(
@@ -37,31 +32,24 @@ void Simulation::init()
 {
 	const int w = m_grid->getWidth();
 	const int h = m_grid->getHeight();
+
 	// create the buffer so we can draw our cells on it
 	m_buffer.create(w, h, sf::Color(255, 0, 255));
 
-	Cell c;
-	c.setType(Cell::Type::Filled);
+	const int blobs_to_add = num_blobs;
 
-	// starting state/layout of grid
-	const Vec2i center{ w / 2, h / 2 };
+	auto getColor = [](int id) -> sf::Color {
+		sf::Color color(
+			(((id << 2) * 370) % 256),//(256/2)) * 2,
+			(((id << 3) * 4813) % 256),//(256/2)) * 2,
+			(((id << 4) * 171) % 256) //(256/2)) * 2
+		);
+		return color;
+	};
 
-	const int index = Math::to_index(center, dim);
-
-	const int blobs_to_add = 50;
-	const int len = std::sqrtf(blobs_to_add);
-
-	for (int i = 0; i < blobs_to_add; ++i)
+	for (int i = 0; i < num_blobs; ++i)
 	{
 		blobs.emplace_back(*m_grid, i + 1);
-
-		const int x = Math::to_x(i, len, len);
-		const int y = Math::to_y(i, len, len);
-
-		//const Vec2i pos{
-		//	(x * (w / len)) + Math::rng(0,len) + (len/2),
-		//	(y * (h / len)) + Math::rng(0,len) + (len/2)
-		//};
 
 		const Vec2i pos{
 			Math::rng(0,w),
@@ -69,21 +57,10 @@ void Simulation::init()
 		};
 
 		blobs[i].spawn(pos);
+
+		blob_colors.emplace_back(getColor(i + 1));
 	}
 
-	
-
-	const Vec2i top_left{ w / 4, h / 4 };
-	const Vec2i top_right{ 3 * w / 4, h / 4 };
-	const Vec2i bottom_left{ w / 4, 3 * h / 4 };
-	const Vec2i bottom_right{ 3 * w / 4, 3 * h / 4 };
-
-	//blob1.spawn(top_left);
-	//blob2.spawn(top_right);
-	//blob3.spawn(bottom_left);
-	//blob4.spawn(bottom_right);
-
-	//blob1.spawn(center);
 }
 
 void Simulation::start()
@@ -102,10 +79,10 @@ void Simulation::applicationLoop()
 {
 	sf::Clock timer;
 
-	int FPS{ 24 };
+	int FPS{ 60 };
 	double FRAME_DURATION{ 1.0 / FPS };
 
-	int TPS{ 300 };
+	int TPS{ 100 };
 	double TICK_DURATION{ 1.0 / TPS };
 
 	sf::Time currentFrame, prevFrame;
@@ -184,13 +161,9 @@ void Simulation::handleInput()
 	}
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
-	{
 		m_grid->clear();
-
-	}
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num1))
 		placing_cell_type = Cell::Type::Filled;
-	
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num2))
 		placing_cell_type = Cell::Type::Empty;
 }
@@ -202,30 +175,32 @@ void Simulation::update(const int tick)
 	if (!m_window.getWindow().isOpen())
 		m_isRunning = false;
 
+	// sim code
+	for (int i = 0; i < 100; ++i)
+		for (Blob& b : blobs)
+			b.grow();
+
+	int filled_cells = 0;
 
 	for (Blob& b : blobs)
-		b.grow();
+	{
+		b.cullPerimeter();
+		filled_cells += b.getArea();
+	}
 
-	//blob1.grow();
-	//blob2.grow();
-	//blob3.grow();
-	//blob4.grow();
+	const bool is_filled = (filled_cells == width * height);
+
+	if (is_filled && iterations_left != 0)
+	{
+		m_grid->clear();
+		iterations_left--;
+	}
 }
 
 void Simulation::render()
 {
 	static const sf::Color EMPTY{ 223, 224, 255 };
 	static const sf::Color FILLED{  12,  70, 230 };
-
-	auto getColor = [](const Cell& cell) -> sf::Color {
-		int id = cell.getID();
-		sf::Color color(
-			(((id << 2) * 370)   % 256),//(256/2)) * 2,
-			(((id << 3) * 4813)  % 256),//(256/2)) * 2,
-			(((id << 4) * 171)   % 256) //(256/2)) * 2
-		);
-		return color;
-	};
 
 	for (int i = 0; i < m_grid->getSize(); ++i)
 	{
@@ -234,23 +209,20 @@ void Simulation::render()
 		const int y{ i / m_grid->getWidth() };
 
 		const Cell& c = m_grid->getCell(x, y);
+		const int id = c.getID();
+
+		const bool non_blob_id = (id <= 0 || id >= blob_colors.size());
+
+		const sf::Color color = non_blob_id ? sf::Color::Black : blob_colors[id - 1];
 
 		switch (c.getType())
 		{
-			case Cell::Type::Empty:		m_buffer.setPixel(x, y, EMPTY);			break;
-			case Cell::Type::Filled:	m_buffer.setPixel(x, y, getColor(c));	break;
+			case Cell::Type::Empty:		m_buffer.setPixel(x, y, EMPTY);		break;
+			case Cell::Type::Filled:	m_buffer.setPixel(x, y, color);		break;
 
-			default:	m_buffer.setPixel(x, y, sf::Color::Magenta);			break;
+			default:	m_buffer.setPixel(x, y, sf::Color::Magenta);		break;
 		}
 	}
 
 	m_window.draw(m_buffer);
 }
-
-//void Simulation::swapGrids()
-//{
-//	Grid* temp{ m_grid };
-//
-//	m_grid = m_next_grid;
-//	m_next_grid = temp;
-//}
